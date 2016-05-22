@@ -72,13 +72,16 @@ attempt to integrate this application domain with the set cover problem domain
 and a number of algorithm domains to solve the problem efficiently.
 
 The rest of this paper is organized as follows.
-Section~\ref{sec:designProcess}, discusses the design process starting with the
-problem domain (PD) and algorithm domain (AD) and ending with a coded
-implementation. In Section~\ref{sec:application}, the problem domain of the UAS
-problem discussed briefly in this section is revisted and discussed in greater
-detail.  Section~\ref{sec:experiment} describes and analyzes the experiments
-run.  Section~\ref{sec:conclusion} concludes with a summary of the project and
-brief discussion of related works.
+Section~\ref{sec:designProcess}, discusses the problem domain and UAS
+application problem domain discussed briefly at the beginning of this section.
+In Section~\ref{sec:initIntegration}, the Algorithm domain is discussed and the
+disciplined, top-down algorithm design process from~\cite{lamontDesign,
+lamontSCP, lamontMIS} is used to integrate the problem, application, and
+algorithm domains ending with a coded implementation in Section~\ref{sec:code}.
+Results and analysis of the implementation, tested in accordance with the
+guidelines put forth in~\cite{barr2001}, can be found in
+Section~\ref{sec:experiment}. Finally, Section~\ref{sec:conclusion} concludes
+with a summary of the project.
 
 %%    SECTION 2    %%
 \section{CSCE 686 Project Algorithmic Design Process} \label{sec:designProcess}
@@ -91,11 +94,12 @@ problem domain is discussed in Section~\ref{sec:problemDomain}. Integration of
 the problem domain with the application domain is detailed in
 Section~\ref{sec:application}. The algorithm domain is discussed
 Section~\ref{sec:initIntegration} where the initial integration of the
-algorithm and problem domains begins.  Section~\ref{sec:intermedDesign} refines
-the data structures from~\ref{sec:initIntegration} and integrates them into the
-program design.  Pseudocode for the algorithm is presented in
-Section~\ref{sec:pseudocode} and, finally, an implementation in code based on
-the aforementioned pseudocode is described in Section~\ref{sec:code}.
+algorithm and problem domains begins, data structures
+from~\ref{sec:initIntegration} are refined and integrated into the program
+design.  Pseudocode for the deterministic and stochastic algorithms are
+presented in Sections~\ref{sec:astarPseudo} and~\ref{sec:SAPseudo}
+respectively. This section concludes with the coded implementations, based on
+the aforementioned pseudocode, found in Section~\ref{sec:code}.
 
 
 
@@ -275,10 +279,11 @@ We now have to prove that the application domain, the UAS problem, is
 NP-Complete. This can be shown using the technique described
 in~\cite{586textbook} in which the constraints described in
 Section~\ref{sec:APD} are relaxed to facilitate a polynomial-time
-transformation into the form of a known NP-Complete problem. This would allow a
-polynomial-time black-box solver for the known NP-Complete problem, if one
-existed, to solve the relaxed-constraint UAS problem. The UAS problem with
-relaxed constraints could then be said to be at least as hard as NP-Complete.
+reduction~\cite{wiki:polyReduction} into the form of a known NP-Complete
+problem. This would allow a polynomial-time black-box solver for the known
+NP-Complete problem, if one existed, to solve the relaxed-constraint UAS
+problem. The UAS problem with relaxed constraints could then be said to be at
+least as hard as NP-Complete.
 
 Relaxing the constraints of the UAS problem results in a problem as follows:
 given a universe, or set of targets, $\mathcal{R}$ a set of UASs $\mathcal{U}$,
@@ -360,8 +365,8 @@ Operations on the A$^*$ algorithm include the following, adapted
 from~\cite{lamontAstarEx}:
 
 \begin{enumerate}
-  \item[] \emph{state} : the set of nodes explored (those in \emph{OPEN}) and
-    the set of nodes expanded (those in \emph{CLOSED})
+  \item[] \emph{next-state-generator} : the set of nodes explored (those in
+    \emph{OPEN}) and the set of nodes expanded (those in \emph{CLOSED})
   \item[] \emph{set of candidates} : nodes in the frontier (\emph(OPEN) list)
     sorted by \heuristic
   \item[] \emph{selection function} : choose node $n^\prime$ with the smallest
@@ -375,7 +380,7 @@ from~\cite{lamontAstarEx}:
 
 This concludes the data structures and operations discussion of the A$^*$
 algorithm. In the next section, we refine the data structures and algorithm
-towards a complete, \emph{creative!} solution.
+towards a complete, \emph{creative !} solution.
 
 \subsubsection{Refinement}
 
@@ -399,7 +404,7 @@ Data Structure Refinement:
     expanded
 \end{enumerate}
 
-\subsubsection{Pseudocode}
+\subsubsection{Pseudocode} \label{sec:astarPseudo}
 
 This section presents pseudocode for the deterministic A$^*$ search algorithm
 describe in the preceding sections. The pseudocode can be seen in
@@ -469,7 +474,15 @@ Section~\ref{sec:detAlg}. It is adapted from the form found in~\cite{pjcvphw8}.
 
 % Selection of stochastic algorithm
 \subsection{Selection of Stochastic Algorithm}
-For the simulated annealing
+
+Simulated annealing is the stochastic algorithm that will be used in this
+project. A brief introduction and review of simulated annealing will follow in
+Section~\ref{sec:SAD}, with the remaining subsections in this section devoted
+to documenting the disciplined, top-down design approach found
+in~\cite{lamontMIS, lamontDesign, lamontSCP} -- starting with data structure
+choice (as the problem domain has already been discussed in
+Sections~\ref{sec:problemDomain} and~\ref{sec:application}) and finishing with
+a coded implementation (see Section~\ref{sec:code}).
 
 ``This theorem states that no search algorithm is better than a random search
 on the space of all possible problems —in other words, if a particular
@@ -478,14 +491,129 @@ will not perform as well on another type of problem, so that all in all, its
 global performance on the space of all possible problems is equivalent to a
 random search.''~\cite{collet2007, wiki:nfl}
 
-\subsubsection{Simulated Annealing Algorithm Domain Discussion}
+\subsubsection{Simulated Annealing Algorithm Domain Discussion} \label{sec:SAD}
 
-\subsubsection{Data Structures and Operations}
+Simulated annealing, according to~\cite{wiki:SA}, ``is a probablistic technique
+for approximating the global optimum of a given function [and a] metaheuristic
+to approximate global optimization in a large search space.'' The algorithm
+takes its cue from a process known as annealing in metallurgy~\cite{lamontSA},
+modeling the cooling of metals as the atoms of superheated metals gradually
+progress towards an equilibrium as the metal cools~\cite{talbi2009,
+wiki:metal}.  Consequently, the key to the simulated annealing algorithm is the
+temperature, which is controlled via a cooling schedule. The cooling schedule
+is responsible for allowing the search to escape from local optimals and
+gradually decreases the temperature to slow the exploration of the search space
+to the global optimum~\cite{lamontSA, talbi2009}. 
+
+A difficulty encountered when implementing the simulated annealing algorithm is
+the concept of neighborhood selection. Considered an art-form by
+some~\cite{hw9}, selecting the neighborhood provides the local search aspect of
+the algorithm while the cooling schedule allows it to search globally as well,
+leading to the global optim\emph{um}~\cite{wiki:SA}.
+
+\subsubsection{Data Structures and Operations} \label{sec:SAdata}
+
+For the simulated annealing algorithm we will use the following data
+structures:
+
+\begin{enumerate}
+  \item[] \emph{Solution} : a structure that holds the current partial solution
+  \item[] \emph{Target} : a structure that represents a target to surveil, with
+    a geographic location
+  \item[] \emph{UAS} : a structure that represents an available Unmanned
+    Aircraft System with an assigned squadron and operating cost
+  \item[] \emph{Squadron} : a squadron that ``owns'' one or more UASs with a
+    geographic location
+  \item[] \emph{Schedule} : a structure that represents one or more time
+    windows, per target, for which the target is ``available'' to be surveilled
+\end{enumerate}
+
+Operations on the simulated annealing algorithm include the following, adapted
+from~\cite{lamontSAGS}:
+
+\begin{enumerate}
+  \item[] \emph{next-state-generator} : generation uses mutation operating on
+    current individual according to some probability
+  \item[] \emph{set of candidates} : a solution
+  \item[] \emph{selection function} : select from current solution for next
+    generation solution
+  \item[] \emph{feasibility function} : check new population child for
+    feasibility (done by construction)
+  \item[] \emph{solution function} : population members are feasible solutions
+    by construction
+  \item[] \emph{fitness function} : reflects symbolic problem domain
+    optimization goal
+\end{enumerate}
+
+This concludes the data structures and operations discussion of the simulated
+annealing algorithm. Once again, in the next section we refine the data
+structures and algorithm towards a complete, \emph{creative !} solution.
+
 
 \subsubsection{Simulated Annealing Algorithm Refinement}
 
-\subsubsection{Pseudocode}
+We refine the simulated annealing algorithm by specifying more specific data
+structures defined in Section~\ref{sec:SAdata}. The data structure refinement
+follows:
 
+\begin{enumerate}
+  \item[] \emph{Solution} : a set that holds the current partial solution
+  \item[] \emph{Target} : a structure that represents a target to surveil, with
+    a geographic location
+  \item[] \emph{UAS} : a structure that represents an available Unmanned
+    Aircraft System with an assigned squadron and operating cost
+  \item[] \emph{Squadron} : a squadron that ``owns'' one or more UASs with a
+    geographic location
+  \item[] \emph{Schedule} : a structure that represents one or more time
+    windows, per target, for which the target is ``available'' to be surveilled
+  \item[] \emph{Temperature} : an integer representation of the temperature
+    used in the cooling schedule function
+\end{enumerate}
+
+This refinement enables us to now provide a pseudocoded implementation, which
+follows in Section~\ref{sec:SAPseudo}.
+
+\subsubsection{Pseudocode} \label{sec:SAPseudo}
+
+The following pseudocode implementation is adapted from~\cite{lamontSAGS} to
+solve the UAS problem described in this project.
+
+\begin{algorithm}[ht!]
+    \begin{algorithmic}[1]
+      \LineComment{Initialization}
+      \State initialize starting \emph{Temperature} value
+      \State generate feasible solution : place first available point in each
+        neighborhood in \emph{Solution}
+      \Statex
+      \While{true}
+        \LineComment{Solution Function}
+        \LineComment{Delayed termination}
+        \If{$\mathit{temp} == 0$ OR $\mathit{iterations} > \mathtt{MAX_IT}$} \\
+        \hskip \algorithmicindent \hskip \algorithmicindent \Return
+          \begin{varwidth}[t]{\dimexpr\linewidth-7em}solution
+          \end{varwidth}
+        \EndIf
+        \LineComment{Next-State-Generator Function}
+        \State \begin{varwidth}[t]{\dimexpr\linewidth-\algorithmicindent}
+          mutate current solution by assigning a target to a UAS\\
+          \end{varwidth}
+        \Statex
+        \LineComment{Selection Function}
+        \State
+            \If{value of item in \emph{Solution.pop()} $<$ current solution}
+              \State replace current solution with \emph{Solution.pop()}
+              \Statex
+          \LineComment{Feasibility Function}
+            \ElsIf{temp(\emph{Solution.pop()}) $==$ \texttt{true}}
+              \LineComment{worse solution found}
+              \State replace current solution with \emph{Solution.pop()}
+            \EndIf
+      \EndWhile
+    \end{algorithmic}
+    \caption{A$^*$ Search Algorithm from~\cite{pearl1984} modified with a
+    heuristic and delayed termination to solve SCP/SPP}
+    \label{alg:astar}
+\end{algorithm}
 
 %%    SECTION 2.6    %%
 \subsection{\textsc{Program Implementation}} \label{sec:code}
@@ -505,9 +633,9 @@ can be seen in the
 GitHub repository\footnote{https://github.com/chipvp/686Project} created for
 this project.
 
-% %%    SECTION 4    %%
-% \section{Design of Experiments} \label{sec:experiment}
-% 
+%%    SECTION 4    %%
+\section{Design of Experiments} \label{sec:experiment}
+
 % % --(class handout for evaluations; M\&F, Appendix B; Barr, Talbi, …)\\
 % % --Objectives of experiment (selected application and general)\\
 % % --Tests and Results (application, benchmarks; increasing dimensions – from
@@ -529,9 +657,9 @@ this project.
 % \subsection{A$^*$ Search Algorithm Results and Analysis}
 % 
 % \subsection{Simulated Annealing Algorithm Results and Analysis}
-% 
-% %%    SECTION 5    %%
-% \section{Conclusions} \label{sec:conclusion}
+ 
+%%    SECTION 5    %%
+\section{Conclusions} \label{sec:conclusion}
 
 % --Relate your  program design experience to educational objectives\\
 % --Briefly discuss experimental design results, analysis and comparisons.\\
