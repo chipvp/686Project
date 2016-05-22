@@ -1,0 +1,574 @@
+
+\documentclass[conference]{IEEEtran}
+
+\usepackage{amsmath,amssymb,mathabx} 
+\usepackage{url}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{hyperref} 
+\usepackage{listings}
+\usepackage{varwidth}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{array} 
+\graphicspath{ {./img/} }
+
+%   ALGORITHM COMMANDS    %
+\newcommand{\LineComment}[1]{\Statex /* \hfill \textit{#1} \hfill*/}    % C-style Block Comment
+\algrenewcommand{\algorithmiccomment}[1]{\hfill\textit{// #1}}  % C-style comment
+\algnewcommand\algorithmicforeach{\textbf{for each}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\hyphenation{op-tical net-works}
+
+\lstset{breaklines}         % auto line break for listings
+\hyphenation{op-tical net-works}
+
+\newcommand{\bigoh}[1]{\ensuremath{\mathcal{O}(#1)}}		% define BigOh function
+
+\begin{document} \title{CSCE 686 Complex Optimization\\Algorithm Design Project}
+
+% IEEE Specific formatting
+\author{\IEEEauthorblockN{1Lt Chip Van Patten\IEEEauthorrefmark{1}}
+        \IEEEauthorblockA{Air Force Institute of Technology\\
+                          Dayton, Ohio 45433\\
+Email: \IEEEauthorrefmark{1}donald.vanpatten@afit.edu}}
+\maketitle
+
+\begin{abstract}
+This project addresses a problem in the field of Unmanned Aircraft Systems
+(UASs) dealing with assigning UAS orbits.  Given a limited number of UAVs, each
+based in specific locations -- each with specific ranges of flight and
+operating costs -- and a list of targets to surveil, how do we assign
+surveillance orbits to the UASs such that all targets are surveilled while
+keeping the UASs close enough to their base of operations that they may safely
+return, either when their mission finishes or they've exhausted their fuel, at
+minimum cost? The project will attempt to integrate this application domain
+with the set cover problem domain and a number of algorithm domains to solve
+the problem efficiently.
+\end{abstract}
+
+\section{Introduction} \label{intro}
+
+% --Background, layout of report, ...\\
+% --PD/AD CSCE686 Software Design Plan with software engineering practice\\
+% --Selected problem domain and specific application domain -- high level
+% overview\\
+% --``Using again software design techniques''
+
+This project addresses a problem in the field of Unmanned Aircraft Systems
+(UASs) dealing with assigning UAS orbits to cover a list of targets.  Given a
+limited number of UAVs, each assigned to specific units based in specific
+locations -- each with specific ranges of flight and operating costs -- and a
+list of targets to surveil, how do we assign surveillance orbits to the UASs
+such that all targets are surveilled while keeping the UASs close enough to
+their base of operations that they may safely return, either when their mission
+finishes or they've exhausted their fuel, at minimum cost? The project will
+attempt to integrate this application domain with the set cover problem domain
+and a number of algorithm domains to solve the problem efficiently.
+
+The rest of this paper is organized as follows.
+Section~\ref{sec:designProcess}, discusses the design process starting with the
+problem domain (PD) and algorithm domain (AD) and ending with a coded
+implementation. In Section~\ref{sec:application}, the problem domain of the UAS
+problem discussed briefly in this section is revisted and discussed in greater
+detail.  Section~\ref{sec:experiment} describes and analyzes the experiments
+run.  Section~\ref{sec:conclusion} concludes with a summary of the project and
+brief discussion of related works.
+
+%%    SECTION 2    %%
+\section{CSCE 686 Project Algorithmic Design Process} \label{sec:designProcess}
+
+% ``may want to put some details in appendix for each design sub-process''
+
+This section details the algorithmic design process using the top down
+disciplined design approach specified in~\cite{lamontDesign, lamontSCP}. The
+problem domain is discussed in Section~\ref{sec:problemDomain}. Integration of
+the problem domain with the application domain is detailed in
+Section~\ref{sec:application}. The algorithm domain is discussed
+Section~\ref{sec:initIntegration} where the initial integration of the
+algorithm and problem domains begins.  Section~\ref{sec:intermedDesign} refines
+the data structures from~\ref{sec:initIntegration} and integrates them into the
+program design.  Pseudocode for the algorithm is presented in
+Section~\ref{sec:pseudocode} and, finally, an implementation in code based on
+the aforementioned pseudocode is described in Section~\ref{sec:code}.
+
+
+
+
+%%    SECTION 2.1    %%
+\subsection{\textsc{Problem Domain}} \label{sec:problemDomain}
+
+% PD English discussion
+\subsubsection{Problem Domain Discussion}
+
+The set cover problem is a class of problems in which one seeks to select a
+minimum number of sets, at minimum cost, so that the union of all selected sets
+contains all elements in the input~\cite{stern2006}.  More formally, given a
+universe, or ground set of elements, ${\mathcal{R} = \lbrace r_1,\ldots,r_m
+\rbrace}$ and a family of sets ${\mathcal{S} = \lbrace S_1,\ldots,S_N
+\rbrace}$, a set covering of $\mathcal{R}$ exists if \[ \bigcup\limits_{i =
+1}^k S_{j_i} = \mathcal{R},\]
+
+\noindent with $S_{j_i}$ being the covering sets~\cite[pp.
+39-40]{christofides1975}. Christofides further state that if, for each $S_j \in
+\mathcal{S}$, ``there is associated a (positive) cost $c_j$''~\cite[p.
+39]{christofides1975}, then the goal of the set cover problem is to find a set
+of sets $\mathcal{S}^\prime$ which includes all $m$ elements of $\mathcal{R}$
+while minimizing $\sum_{i = 1}^k c_j$~\cite{christofides1975, stern2006,
+talbi2009, wiki:SCP}. 
+
+In the classic, or un-weighted, set cover problem, all ${c_j =
+1}$~\cite{stern2006}. In this paper we will only deal with a weighted variant
+of the set cover problem, consequently, for the purposes of this paper, the
+term \textit{set cover problem} is synonymous with \textit{weighted set cover
+problem}, but the former will be used exclusively.
+
+% PD symbolic set development and discussion
+\subsubsection{Symbolic Set Development and Discussion} \label{sec:symbol}
+We will now develop a symbolic set (adapted from~\cite{christofides1975,
+lamontSCP}) which will formalize the notation used throughout this paper and,
+hopefully, aid in understanding and clarity as we progress in our development
+to the algorithm and application domains.
+
+Domains:
+\begin{enumerate}
+  \item[] $D_i$ : $(\mathcal{R,S})$
+  \item[] $\mathcal{R}$ : set of $m$ elements $r$
+  \item[] $\mathcal{S}$ : set of $N$ sets with costs $c$ that may cover
+    $\mathcal{R}$
+    \begin{enumerate}
+      \item[] set cover : $\bigcup\limits_{i=1}^k S_{j_i} =
+        \mathcal{R}$~\cite[Eq.~3.12]{christofides1975}\\ 
+        -- union of sets cover $\mathcal{R}$
+        elements
+    \end{enumerate}
+  \item[] $D_o$ : set of set-covers $\mathcal{S}^\prime$ of $\mathcal{R}$ with
+    additive cost
+\end{enumerate}
+
+% PD $0/1$ problem description mapping from set description (utility?)
+\subsubsection{$0/1$ Problem Description}
+An integer linear program is a special case of integer programming ``in which
+unknowns are binary, and only the restrictions must be
+satisfied''~\cite{wiki:IP}. According to~\cite{christofides1975}, the set cover
+problem ``can be formulated as a [$0/1$] linear program'' as follows:
+\begin{align*}
+  \text{minimize} \sum\limits_{j=1}^N &c_j \xi_j\\
+  \text{subject to} \sum\limits_{j=1}^N &t_{ij} \xi_j \geq 1 &\forall
+  r_i \in \mathcal{R}
+\end{align*}
+where ${c_j \geq 0}$, ${\xi_j \in \lbrace 0,1 \rbrace}$, if ${S_j \notin
+\mathcal{S}^\prime}$ or ${S_j \in \mathcal{S}^\prime}$ respectively, and ${t_{ij}
+\in \lbrace 0,1 \rbrace}$, if ${r_i \notin S_j}$ or ${r_i \in S_j}$
+respectively~\cite[p. 39-40]{christofides1975}.
+
+This is different from the set cover problem defined above in that we encode,
+using binary representation, whether every set is in the set cover or not.
+We assign a $1$ if the set is in the set cover, and a $0$ otherwise. This
+provides a $\log{n}$-approximation algorithm for the minimum
+set cover problem~\cite{wiki:SCP}.
+
+% PD Problem Domain complexity (search space, solution space)
+\subsubsection{Problem Domain Complexity} \label{sec:pdComplex}
+
+In 1972, Karp, et al. proved that the set cover problem is
+NP-Complete~\cite{karp1972}, while the optimization version is
+NP-Hard~\cite{wiki:SCP}. According to \cite{wiki:SCP, lamontSCP}, the
+complexity of the set cover problem is the powerset of $\mathcal{S}$, that is
+${\bigoh{2^{|\mathcal{S}|}} \rightarrow \bigoh{2^N}}$, for both the search and
+solution spaces. This is due to the fact that a solution is found, if it
+exists, only by searching the space of all possible combinations of
+$\mathcal{S}$.
+
+% Problem Domain specification (Input and Output domains, Conditions,...)
+\subsubsection{Problem Domain Specification}
+Using the symbolic notation developed in Section~\ref{sec:symbol} we define the
+input and output domains and conditions for the set cover problem domain.
+
+\begin{enumerate}
+  \item[] $D_i$ : $(\mathcal{R,S})$
+  \item[] $\mathcal{R}$ : set of $m$ elements $r$
+  \item[] $\mathcal{S}$ : set of $N$ sets with costs $c$ that may cover
+    $\mathcal{R}$
+    \begin{enumerate}
+      \item[] set cover : $\bigcup\limits_{i=1}^k S_{j_i} =
+        \mathcal{R}$~\cite[Eq.~3.12]{christofides1975}\\ 
+        -- union of sets cover $\mathcal{R}$
+        elements
+    \end{enumerate}
+  \item[] $D_o$ : set of set-covers $\mathcal{S}^\prime$ of $\mathcal{R}$ with
+    additive cost
+\end{enumerate}
+
+Solution:
+\begin{enumerate}
+  \item[] Minimize additive cover costs subject to following constraints:
+    \begin{enumerate}
+      \item[-] set cover:\\
+        $\sum\limits_{j=1}^N t_{ij} \xi_j \geq 1, \quad i =
+        1,2,\ldots,M$~\cite[Eq.  3.14]{christofides1975}\\
+        cover all elements at least once
+    \end{enumerate}
+\end{enumerate}
+\medskip
+
+
+
+%%    APPLICATION DOMAIN    %%
+% --Application Problem  Domain complexity\\
+% --Justify selection of approaches as generating a solution(s)\\
+% --Mapping of Application to problem domain data structures
+
+\subsection{\textsc{Application Problem Domain}} \label{sec:application}
+
+% Application Problem Domain English discussion
+\subsubsection{Application Problem Domain Discussion} \label{sec:APD}
+
+The UAS problem deals with assigning UAS orbits to cover a list of targets.
+Given a limited number of UAVs, each assigned to specific units based in
+specific locations -- each with specific ranges of distance able to travel and
+operating costs -- and a list of targets to surveil, how do we assign
+surveillance orbits to the UASs such that all targets are surveilled while
+keeping the UASs close enough to their base of operations that they may safely
+return, either when their mission finishes or they've exhausted their fuel, at
+minimum cost?  The UAS problem relates to the set cover problem in that we are
+trying to cover a set of targets with a set of UAVs based on their locations,
+all while keeping them within a specified distance of their home stations and
+minimizing the associated operating costs. 
+
+Formally, there exists a universe of targets that we want to surveil
+${\mathcal{T} = \lbrace t_1,\ldots,t_m \rbrace}$, each with a specific hideout
+location $t_{i_h}$, a set of UASs ${\mathcal{U} = \lbrace u_1,\ldots,u_n
+\rbrace}$, each with an assigned squadron and operating cost, a set of
+squadrons ${\mathcal{F} = \lbrace f_1,\ldots,f_q \rbrace}$ with specific
+geographic locations $f_{j_\ell}$, and, finally, a set of schedules
+${\mathcal{A} = \lbrace a_1,\ldots,a_r \rbrace}$ for each target which denote
+time windows in which the target is able to be surveilled. The objective is to
+surveil each target $t$ during their time window $a$ using a minimum number of
+UASs ${u \in \mathcal{U}}$ at minimum cost $c$ such that each target is
+surveilled.
+
+A review of the available literature reveals that, while much research has been
+performed on routing UASs and target coverage, none of the available sources
+provide insight into the constrained problem defined in this section. The most
+similar research can be found in~\cite{karakaya2014}, which uses a Max-Min Ant
+System algorithm, a member of the ant colony optimization algorithm
+family~\cite{wiki:aco}. Other research with related, but not similar, goals to
+this project are discussed in~\cite{avellar2015, caillouet2010, carlyle2007,
+quintero2010, semsch2009, sundar2013}.
+
+% PD complexity
+\subsubsection{Application Problem Domain Complexity}
+
+Similar to the problem domain complexity described in
+Section~\ref{sec:pdComplex}, the complexity of the application domain is the
+powerset of each search space $\bigoh{2^{|\mathcal{T}|} \times
+2^{|\mathcal{U}|} \times 2^{|\mathcal{F}|} \times 2^{|\mathcal{A}|}}
+\rightarrow \bigoh{2^{m + n + q + r}}$, or every possible combination of
+targets, UASs, squadrons, and surveillance time windows.
+
+We now have to prove that the application domain, the UAS problem, is
+NP-Complete. This can be shown using the technique described
+in~\cite{586textbook} in which the constraints described in
+Section~\ref{sec:APD} are relaxed to facilitate a polynomial-time
+transformation into the form of a known NP-Complete problem. This would allow a
+polynomial-time black-box solver for the known NP-Complete problem, if one
+existed, to solve the relaxed-constraint UAS problem. The UAS problem with
+relaxed constraints could then be said to be at least as hard as NP-Complete.
+
+Relaxing the constraints of the UAS problem results in a problem as follows:
+given a universe, or set of targets, $\mathcal{R}$ a set of UASs $\mathcal{U}$,
+and a family of sets $\mathcal{S}$, containing UASs available to surveil
+specific targets. Assign to each $s \in \mathcal{S}$ an operating cost $c$. The
+goal is then to surveil each target in $\mathcal{R}$ at minimum cost. This
+transformation can be done in polynomial time.
+
+The solution returned is easily verified by iterating through $\mathcal{R}$ and
+checking that there is in fact a UAS $\in \mathcal{U}$ assigned to surveil that
+target. The complexity of the verification is ${\bigoh{|\mathcal{R}| \times
+|\mathcal{U}|}}$
+
+Therefore, since we have shownn that, in polynomial-time, the UAS problem can
+be transformed to the set cover problem (a known NP-Complete problem),
+${\mathit{UAS} \leq_p \mathit{Set\ Cover}}$, and we can verify in
+polynomial-time the solution, the UAS problem is NP-Complete.
+
+
+%%    SECTION 2.2    %%
+\section{\textsc{Algorithm Domain/Problem Domain Initial Integrations}} \label{sec:initIntegration}
+
+
+% Selection of deterministic algorithm
+\subsection{Selection of Deterministic Algorithm} \label{sec:detAlg}
+
+The deterministic algorithm used for this project is the A$^*$ search
+algorithm. The heuristic function will be defined the same way the classic
+greedy approach to this problem is as per~\cite{wiki:SCP}, with the exception
+that the heuristic is inverted, as done in~\cite{pjcvphw8}, due to the fact
+that A$^*$ chooses the next search node which has the $h(n)$ closest to $0$.
+The heuristic function developed for this project is defined as: $h(n) =
+-\frac{\text{\# of targets surveilled}}{\text{cost}}$. The function for
+deciding which node to visit next is: 
+\[ \text{minimize} f(n) = h(n) c(n,n^\prime).\]
+
+\subsubsection{Problem Domain/Algorithm Domain Developing Specification}
+
+\mbox{Basic search constructs for A$^*$}
+
+\begin{enumerate}
+  \item[-] \emph{next-state-generator} : $(D_i) \rightarrow x \in F$; $I(x)$
+  \item[-] \emph{selection} : $(D_i) \rightarrow x; x \in F$\\
+    (usually from an ordered/sorted set based explicitly/implicitly SCP/SPP
+    criteria-desire terminal nodes)
+  \item[-] \emph{feasibility} : $(x, D_p) \rightarrow$ boolean\\
+    (if true partial cover, $x \cup S$, $S$ intersection previous partial cover
+    set $S \in X$ (intersection empty for SPP)
+  \item[-] \emph{solution} : $O(x,z)$; $(D_p) \rightarrow$ boolean; $z =
+    D_p$,\\
+    i.e. a \emph{minim\textbf{al}} \emph{cover} has been found, $R$ is covered
+    with a set of sets $S$ from $F$
+  \item[-] \emph{objective} : $(D_p) \rightarrow D_o$\\
+    ``ordered set/well founded set of sets is regt'd''
+  \item[-] \textbf{Delay Termination} from A$^*$\\
+    -- \emph{find all} minimal/minimum solutions within designed tbd
+    \emph{loop}\\
+  \item[] imports: ADT set, array, boolean, real/integer/character
+\end{enumerate}
+\medskip
+
+\subsubsection{SCP/SPP Algorithm Domain Design Refinement}
+
+\mbox{domains:}
+\begin{enumerate}
+  \item[] $d_i$ : $(r,f)$
+  \item[] $r$ : set of elements $r$, dim $r = a$
+  \item[] $f$ : set of weighted sets $n$ that may cover $r$ with weights
+    $w(s)$, dim $f = b$
+  \item[] $d_o$ : sets of set-covers $f$ of elements $n \in f$ 
+  \item[] $d_p$ : partial set of set-covers of elements with $n \in f$ 
+\end{enumerate}
+
+sort/select from $f$:
+\begin{enumerate}
+  \item[-] Sort sets based upon the following heuristic:\\
+      $h(n) = -\frac{\text{\# of elements in the set}}{\text{cost}}$
+  \item[-] Select sets that minimize $f(n) = h(n) c(n,n^\prime)$
+\end{enumerate}
+
+imports: ADT set, array, boolean, real/integer/character
+\medskip
+
+\subsubsection{Algorithm Domain Design Continuing Refinement}
+
+\mbox{Operations:} 
+\begin{enumerate}
+  \item[-] ``Need to \emph{find-all-min-set-covers} $(D_i)$ and put in $(D_o)$''
+  \item[-] Reformat: Define state as the current partial cover $D_p$, the cost
+    of the current partial cover $z$, number of elements covered $E$, best
+    cover cost $z^\prime$; $(D_p, E, z, z^\prime)$
+\end{enumerate}
+
+
+Loop
+
+\begin{enumerate}
+  \item[-] \emph{next-state-generator} : Generate each successor of $n$ and
+    attach pointers back to $n$
+  \item[-] \emph{selection} : pick the $n$ for which $f(n) = h(n) +
+    c(n,n^\prime)$ is minimized
+  \item[-] \emph{feasibility} : $(r_i,n_j,D_p)$\\ 
+    -- $r_i$ covered by current partial solution $D_p$: (extending previous
+      symbolic logic)\\ 
+    -- -- if $r_i \in n_j$ and not previously covered, then $n_j \cup D_p$
+  \item[-] \emph{solution} : $(R,D_p, c)$ : have all elements of
+    $R$ been covered by $D_p$ at some cost $c$?
+  \item[-] \emph{loop} : if solution found $E = R$,
+    update state with solution loop to consider another set in the current
+    block
+  \item[-] \emph{objective} : min$(c: R \in D_p)$ if the cover is
+    a minimum cost then $z = D_p$
+\end{enumerate}
+
+\subsubsection{Functional Algorithm Spec for SCP/SPP A$^*$ Search}
+\emph{Name:} SCP/SPP A$^*$ Search
+
+Algorithm~\ref{alg:astar} is a version of the A$^*$ algorithm detailed
+in~\cite{pearl1984}, modified to delay termination to find a complete solution
+and to include the heuristic detailed in Section~\ref{sec:detAlg}.
+
+\begin{algorithm}[ht!]
+    \begin{algorithmic}[1]
+      \LineComment{Initialization}
+      \State generate tree
+      \State $\mathit{OPEN}$ : priority queue to hold unvisited nodes
+      \State $\mathit{CLOSED}$ : set to hold visited nodes
+      \State $n$ : a set of sets with properties id, cost, and vector of children
+      \Statex
+      \State Put the start node $s$ on $\mathit{OPEN}$
+      \While{true}
+        \LineComment{Solution Function}
+        \LineComment{Delayed termination}
+        \If{all elements covered \&\& $\mathit{OPEN}$ is empty} \\
+        \hskip \algorithmicindent \hskip \algorithmicindent \Return
+          \begin{varwidth}[t]{\dimexpr\linewidth-7em}solution
+            obtained by tracing back the pointers from $n$ to $s$
+          \end{varwidth}
+        \EndIf
+        \LineComment{Selection Function}
+        \State \begin{varwidth}[t]{\dimexpr\linewidth-\algorithmicindent}Remove
+          from $\mathit{OPEN}$ and place on $\mathit{CLOSED}$ a set for which
+          $f(n) = h(n) + c(n,n^\prime)$ is minimum
+          \end{varwidth}
+        \Statex
+        \LineComment{Next-State-Generator Function}
+        \State
+          \begin{varwidth}[t]{\dimexpr\linewidth-\algorithmicindent}Otherwise
+            expand $n$, generating all its successors, and attach to them
+            pointers back to $n$.
+          \end{varwidth}
+        \Statex
+        \LineComment{Feasibility Function}
+        \ForEach{successor $n^\prime$ of $n$}
+          \LineComment{Objective Function}
+          \If{$n^\prime$ is not already on $\mathit{OPEN}$ or $\mathit{CLOSED}$}
+            \State Estimate $h(n) = -\frac{\text{\# of elements in the
+              set}}{\text{cost}}$
+            \State Calculate $f(n^\prime) = h(n^\prime)+c(n,n^\prime)$
+          \ElsIf{$n^\prime$ is already on $\mathit{OPEN}$ or $\mathit{CLOSED}$}
+            \State \begin{varwidth}[t]{\dimexpr\linewidth-5em}Direct its
+              pointers along the path yielding the lowest
+            $h(n^\prime)$
+            \end{varwidth}
+          \EndIf
+          \If{\begin{varwidth}[t]{\dimexpr\linewidth-3em}$n^\prime$ required
+            pointer adjustment \&\& was on $\mathit{CLOSED}$}
+          \end{varwidth}
+            \Statex
+            \State Put $n^\prime$ on $\mathit{OPEN}$
+          \EndIf
+        \EndFor
+      \EndWhile
+    \end{algorithmic}
+    \caption{A$^*$ Search Algorithm from~\cite{pearl1984} modified with a
+    heuristic and delayed termination to solve SCP/SPP}
+    \label{alg:astar}
+\end{algorithm}
+% Selection of stochastic algorithm
+\subsubsection{Selection of Stochastic Algorithm}
+For the simulated annealing
+
+``This theorem states that no search algorithm is better than a random search
+on the space of all possible problems —in other words, if a particular
+algorithm does better than a random search on a particular type of problem, it
+will not perform as well on another type of problem, so that all in all, its
+global performance on the space of all possible problems is equivalent to a
+random search.''~\cite{collet2007, wiki:nfl}
+
+% Discuss flow of design process; overview of Algorithm/Program Design
+%   Methodology
+\subsubsection{Algorithm/Program Design Methodology}
+
+
+
+% To show design process reflected in specific PD/AD refinement with data
+%   structures
+\subsubsection{Refinement of PD/AD with Data Structures}
+
+
+
+%%    SECTION 2.3    %%
+\subsection{\textsc{Algorithm Design Specifications}} \label{sec:designSpec}
+
+
+% Integrating Problem Domain with Algorithm Domain towards program
+% Define AD structure using PD data structures ``generally difficult''
+\subsubsection{Integration of Problem and Algorithm Domains}
+
+
+
+% Instantiation of general Algorithm Domain specification search constructs with
+%   Program Domain data structures for development of Program Specification
+% Discussion of high-level design process -- towards efficient data structures
+%   & program
+
+%%    SECTION 2.4    %%
+\subsection{\textsc{Intermediate Algorithm Designs}} \label{sec:intermedDesign}
+
+% Refine data structures (justify each) from initial Program Domain
+%   data structures
+% Integrate refined data structures into evolving  program design structure for
+%   each Approach.  Selection of ADT’s for data structure refinement
+
+%%    SECTION 2.5    %
+\subsection{\textsc{Algorithm Pseudocode}} \label{sec:pseudocode}
+
+% Refine intermediate data structures and program design
+% Discussion of low-level design process – toward efficient data structures and
+%   Program development of program functional/OOD structure for each approach
+
+%%    SECTION 2.6    %%
+\subsection{\textsc{Program Implementation}} \label{sec:code}
+
+% --Selection of programming language and programming environment\\
+% --Code implementation- mapping discussion\\
+% --Functional/Object-Oriented structure chart? (comment with the search
+% constructs)\\
+% --Order-of analysis (complexity analysis) of code\\
+% --Address code development using “good” software engineering principles
+% (refs)\\
+% --“Add comments/prose”
+The implementation for this project can be seen in Appendices~\ref{}, \ref{},
+and~\ref{}.
+
+%%    SECTION 4    %%
+\section{Design of Experiments} \label{sec:experiment}
+
+% --(class handout for evaluations; M\&F, Appendix B; Barr, Talbi, …)\\
+% --Objectives of experiment (selected application and general)\\
+% --Tests and Results (application, benchmarks; increasing dimensions – from
+% web?)\\
+% --Validation of code for each approach and application solution(s)\\
+% --Search Graph (partial) for your application (DFS with limited BT or BFS)\\
+% ----Algorithm state execution listing (partial)\\
+% --Discuss your  graph search diagram related to application\\
+% --Analysis of Results (relate to application) – graphs, tables, stats,...\\
+% --Briefly compare to other algorithm designs and results (paper review in
+% app.))\\
+% --Relate experiments to benchmarks and results found on web, books,...\\
+
+Experiments for this project were designed in accordance with the guidelines
+set forth in~\cite{barr2001}. An Apple MacBook Pro equipped with a 2.8 GHz
+Intel Core i7 processor with 16 GB of 1600 MHz DDR3 RAM running Mac OS X
+version 10.11.4 was used to run all experiments.
+
+%%    SECTION 5    %%
+\section{Conclusions} \label{sec:conclusion}
+
+% --Relate your  program design experience to educational objectives\\
+% --Briefly discuss experimental design results, analysis and comparisons.\\
+% --Summary evaluation of  using  of "good” software engineering principles\\
+% ----quality of algorithm (effective, efficient)\\
+% ----quality of implementation \\
+% --Briefly discuss use of other  algorithms and software (web, texts, …)\\
+% --As appropriate, relationship to general Boolean matrix problems
+% (references)\\ 
+% --SCP, SAT, …
+
+% use section* for acknowledgment
+% \section*{Acknowledgment}
+% The authors would like to thank...
+
+% trigger a \newpage just before the given reference
+% number - used to balance the columns on the last page
+% adjust value as needed - may need to be readjusted if
+% the document is modified later
+%\IEEEtriggeratref{8}
+% The "triggered" command can be changed if desired:
+%\IEEEtriggercmd{\enlargethispage{-5in}}
+
+\bibliography{global.bib}{}
+\bibliographystyle{plain}
+
+\end{document}

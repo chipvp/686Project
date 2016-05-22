@@ -1,0 +1,192 @@
+
+\documentclass[conference]{../IEEEtran}
+
+\usepackage{amsmath,amssymb,mathabx} 
+\usepackage{url} 
+\usepackage{float} 
+\usepackage{graphicx}
+\usepackage{tipa}
+\usepackage{hyperref} 
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage{listings}
+%\usepackage{algorithm2e} 
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{array} 
+\usepackage{tikz}
+%\usepackage{hhline}        % double hline (for tabular) 
+\graphicspath{ {./Figures/} }
+
+\tikzset{main node/.style={circle,fill=blue!20,draw,minimum size=0.8cm,inner sep=0pt}, }
+
+%   ALGORITHM COMMANDS    %
+\newcommand{\LineComment}[1]{\Statex /* \hfill \textit{#1} \hfill*/}    % C-style Block Comment
+\algrenewcommand{\algorithmiccomment}[1]{\hfill\textit{// #1}}  % C-style comment
+\algnewcommand\algorithmicforeach{\textbf{for each}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\hyphenation{op-tical net-works}
+
+\lstset{breaklines}         % auto line break for listings
+
+\begin{document} \title{CSCE 686: Homework 9 (60 pts)} 
+
+% IEEE Specific formatting
+\author{\IEEEauthorblockN{1Lt Chip Van Patten\IEEEauthorrefmark{1}}
+        \IEEEauthorblockA{Air Force Institute of Technology\\ Dayton, Ohio 45433\\ Email:
+        \IEEEauthorrefmark{1}\href{mailto:donald.vanpatten@afit.edu}{donald.vanpatten@afit.edu}}}
+\maketitle
+
+\section{Talbi 1.21: Constraint Handling (10 pts)} \label{prob1} % Problem a (10 pts)
+
+The objective function defined as:
+\begin{equation} \label{eq:constraint}
+  f^\prime(x)=\begin{cases}
+    f(x), & \text{if $x$ is a feasible solution}.\\
+    K-\sum_{i=1}^s \frac{K}{m}, & \text{otherwise}.
+  \end{cases}
+\end{equation}
+falls in the constraint handling class of repairing
+strategies~\cite[\S1.5.3]{talbi2009}.  Repairing strategies consist of
+heuristic algorithms which are ``applied to infeasible solutions to generate
+feasible ones'', with most being specific to the given problem and consisting
+of greedy heuristics~\cite{talbi2009}. 
+
+The approach illustrated in (\ref{eq:constraint}) attempts to repair a
+solution to satisfy the most constraints.  The more constraints satisfied, the
+closer to zero $K - \sum_{1}^s \frac{K}{m}$ will be.  This specific approach
+can be implemented in a repairing procedure (adapted from~\cite[Algorithm
+1.3]{talbi2009}) as seen in Algorithm~\ref{alg:repairProc}.  I leave testing of
+this algorithm, as per~\cite{barr2001}, for another time.
+
+\begin{algorithm}[ht!]
+    \begin{algorithmic}[1]
+      \Require $x$ : a nonfeasible solution\par
+      $v$ : a value that represents a feasible solution
+      \Ensure a feasible solution $x^\prime$
+      \Statex
+      \State $x^\prime \leftarrow x$
+      \While{$K - \sum_{1}^s \frac{K}{m} < v$}
+        \Statex \begin{center} $\vdots$ \end{center}
+        \LineComment{repair $x^\prime$ \textit{s.t.} $s$ increases}
+        \Statex \begin{center} $\vdots$ \end{center}
+        \State set $x^\prime$ equal to new solution
+      \EndWhile\\
+      \Return{$x^\prime$}
+    \end{algorithmic}
+    \caption{Repairing procedure using (\ref{eq:constraint})}
+    \label{alg:repairProc}
+\end{algorithm}
+
+This approach is not a Reject Strategy\footnote{also known as a ``death
+penalty''~\cite{talbi2009}} as it does not keep only feasible solutions,
+automatically discarding infeasible solutions~\cite[\S1.5.1]{talbi2009}.  It is
+also not a
+Penalizing\footnote{\textipa{"}p\={e}-n-\textipa{@}l\={\i}z-\textipa{I}\textipa{N}}
+Strategy as $f(x)$ is not ``extended by a penalty function [that penalizes]
+infeasible solutions.''~\cite[\S1.5.2]{talbi2009} Finally, it is not a Decoding
+Strategy nor is it a Preserving Strategy as it does not associate ``each
+representation $r \in R$ [with] a feasible solution $s \in S$ in the search
+space''~\cite[\S1.5.4]{talbi2009} for the former and it does not ``incorporate
+problem-specific knowledge into the representation and search operators to
+generate only feasible solutions''~\cite[\S1.5.5]{talbi2009} for the latter.
+
+% \section{\textsc{Extra Credit}: Talbi 2.9 (10 pts)} \label{extracredit1} % Problem a' (10 pts)
+
+
+
+\section{Talbi 2.19: Tabu List Representation (10 pts)} \label{prob2} % Problem b. (10 pts)
+
+The vehicle routing problem (VRP) is an important algorithm in the field of
+transportation and logistics~\cite{talbi2009}.  The problem attempts to find a
+solution to finding a minimal cost set of routes such that each route begins
+and ends at a single depot and all customer demands are satisfied without
+exceeding the capacities of each individual vehicle~\cite{belfiore2008}. 
+
+Mathematically, it is defined as a undirected graph ${G = (V,E)}$, with a set
+of vertices ${V = \lbrace 0,\ldots,n \rbrace}$ representing cities or customers
+to visit and a set of edges ${E = \lbrace (i,j) : i,j \in V, i \neq j \rbrace}$
+representing routes connecting nodes in $V$~\cite{kumar2012}.  $V_0$ represents
+the depot from and to which the fleet of $m$ vehicles depart and
+return~\cite{kumar2012}.  There is a matrix of costs $C = (c_{ij})$ encoding
+the travel cost of travel time of each route segment in
+$E$~\cite{belfiore2008,kumar2012,talbi2009,wiki:VRP}.
+
+Assuming the severity means the cost of making a change in the order in which
+customers are visited.  There are three representations in ~\cite{toth2003}
+that meet this criteria. the switch
+
+~\cite{toth2003}
+
+\section{WS 3.2 (10 pts)} \label{prob3} % Problem c' (total 20 pts)
+
+The knapsack problem is defined as follows: given a set of items ${I = \lbrace
+1,\ldots,n \rbrace}$, where each item $i$ has a non-negative value $v_i$ and
+non-negative size $s_i$, choose a subset of items $S \subseteq I$ to place in
+the knapsack so as to maximize the value of the items, ${\sum_{i \in S}
+v_i}$~\cite{williamson2011}.  The problem is complicated by the fact that the
+knapsack has a non-negative capacity $B$, so our solution also has to satisfy
+the constraint ${\sum_{i \in S} s_i \leq B}$~\cite{williamson2011}.
+
+Our goal for this problem is to use the result from~\cite[Problem
+$3.1$]{williamson2011} to derive a refined approximation scheme that eliminates
+one factor of $n$ in the running time of the algorithm.  Lai gives such a
+refinement in~\cite{lai2006}.  
+
+Lai observes that scaling the $v_i$ values to small numbers with respect to the
+desired $\epsilon$ (polynomially bounded in $n$) provides an FPTAS for the
+knapsack problem~\cite{lai2006} that satisfies the criteria of the problem.
+The author's proposed algorithm can be seen in Algorithm~\ref{alg:knappy}.
+
+\begin{algorithm}[ht!]
+    \begin{algorithmic}[1]
+      \Require $\epsilon > 0$
+      \Ensure $S^\prime$ : the most profitable set
+      \Statex
+      \State $K \leftarrow \frac{\epsilon P}{n}$
+      \ForEach{$a_i \in I$}
+        \State $p^\prime(a_i) \leftarrow \lfloor \frac{p(a_i)}{K} \rfloor$
+      \EndFor
+      \LineComment{Call Algorithm 3.1 from~\cite{williamson2011} on these new
+      values}
+      \Return{$S^\prime$}
+    \end{algorithmic}
+    \caption{FPTAS Knapsack}
+    \label{alg:knappy}
+\end{algorithm}
+
+% \section{\textsc{Extra Credit}: WS 3.4 (10 pts)} \label{extracredit2} % Problem c' (total 10 pts)
+
+
+
+\section{Simulated Annealing (30 pts)} \label{prob4} % Problem d. (30 pts)
+
+~\cite{caserta2007}
+
+
+\bibliography{../global.bib}{}
+\bibliographystyle{plain}
+
+%\clearpage \newpage \onecolumn 
+%\begin{appendices}
+%\section{scp.cpp Source Code} \label{app:scp}
+%\lstinputlisting[basicstyle=\ttfamily\scriptsize,language=C++]{../SCPAStar/scp.cpp}
+%\newpage
+%\section{set.cpp Source Code} \label{app:set}
+%\lstinputlisting[basicstyle=\ttfamily\scriptsize,language=C++]{../SCPAStar/src/set.cpp}
+%\newpage
+%\section{tree.cpp Source Code} \label{app:tree}
+%\lstinputlisting[basicstyle=\ttfamily\scriptsize,language=C++]{../SCPAStar/src/tree.cpp}
+%\newpage
+%\section{set.hpp Source Code} \label{app:set}
+%\lstinputlisting[basicstyle=\ttfamily\scriptsize,language=C++]{../SCPAStar/incl/set.hpp}
+%\newpage
+%\section{tree.hpp Source Code} \label{app:tree}
+%\lstinputlisting[basicstyle=\ttfamily\scriptsize,language=C++]{../SCPAStar/incl/tree.hpp}
+%\newpage
+%\section{Makefile} \label{app:make}
+%\lstinputlisting[basicstyle=\ttfamily\scriptsize,language=make]{../SCPAStar/Makefile}
+%\end{appendices}
+
+\end{document}
