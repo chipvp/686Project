@@ -215,7 +215,6 @@ Solution:
         cover all elements at least once
     \end{enumerate}
 \end{enumerate}
-\medskip
 
 
 
@@ -300,8 +299,7 @@ polynomial-time the solution, the UAS problem is NP-Complete.
 
 
 %%    SECTION 2.2    %%
-\section{\textsc{Algorithm Domain/Problem Domain Initial Integrations}} \label{sec:initIntegration}
-
+\section{\textsc{Algorithm and Problem Domain Initial Integrations}} \label{sec:initIntegration}
 
 % Selection of deterministic algorithm
 \subsection{Selection of Deterministic Algorithm} \label{sec:detAlg}
@@ -312,18 +310,103 @@ greedy approach to this problem is as per~\cite{wiki:SCP}, with the exception
 that the heuristic is inverted, as done in~\cite{pjcvphw8}, due to the fact
 that A$^*$ chooses the next search node which has the $h(n)$ closest to $0$.
 The heuristic function developed for this project is defined as: \heuristic.
-The function for deciding which node to visit next is: \[ \text{minimize} f(n)
-= h(n) c(n,n^\prime).\]
+The function for deciding which node to visit next is: \[ \text{minimize } f(n)
+= g(n) + h(n), \]
 
-\subsubsection{Problem Domain/Algorithm Domain Developing Specification}
+\noindent where $g(n) = g(n^\prime) + c(n^\prime,n)$.
 
+The following sections document the disciplined design approach found
+in~\cite{lamontSCP, lamontDesign, lamontMIS} -- starting from the point of
+choosing data structures (since the problem domain has already been covered in
+Sections~\ref{sec:problemDomain} and~\ref{sec:application}) and finishing with
+a coded implementation (see Section~\ref{sec:code}).
+
+\subsubsection{A$^*$ Algorithm Domain Discussion}
+
+The A$^*$ algorithm is a best first search algorithm~\cite{lamontBFS,
+pearl1984} which is ``widely used in pathfinding and graph
+traversal''~\cite{wiki:astar} which makes it ideal for our problem. The star
+``refers to always finding the optimal solution''~\cite{lamontBFS}; it can be
+modified to find the optim\emph{um} solution if termination is delayed. While
+it ``is generally outperformed by algorithms which can pre-process the graph to
+attain better performance''~\cite{wiki:astar}, it is still suitable for our
+purposes, especially when using an admissable heuristic to assist the search
+process~\cite{pearl1984} as we will, and is easily adaptable to work with set
+cover problem instantiations. 
+
+What differentiates A$^*$ from other greedy best first search algorithms is
+that it not only takes into account the distance to the goal (the $h(n)$
+part of the algorithm), but it also takes the distance already
+traveled from the start node to the current node as well in the ``$g(n)$ part of
+the heuristic''~\cite{lamontBFS}.
+
+\subsubsection{Data Structures and Operations} \label{sec:dataStructures}
+
+For the A$^*$ search algorithm, we will use the following data structures:
+
+\begin{enumerate}
+  \item[] \emph{Solution} : a structure that holds the current partial solution
+  \item[] \emph{Target} : a structure that represents a target to surveil, with
+    a geographic location
+  \item[] \emph{UAS} : a structure that represents an available Unmanned
+    Aircraft System with an assigned squadron and operating cost
+  \item[] \emph{Squadron} : a squadron that ``owns'' one or more UASs with a
+    geographic location
+  \item[] \emph{Schedule} : a structure that represents one or more time
+    windows, per target, for which the target is ``available'' to be surveilled
+\end{enumerate}
+
+Operations on the A$^*$ algorithm include the following, adapted
+from~\cite{lamontAstarEx}:
+
+\begin{enumerate}
+  \item[] \emph{state} : the set of nodes explored (those in \emph{OPEN}) and
+    the set of nodes expanded (those in \emph{CLOSED})
+  \item[] \emph{set of candidates} : nodes in the frontier (\emph(OPEN) list)
+    sorted by \heuristic
+  \item[] \emph{selection function} : choose node $n^\prime$ with the smallest
+    $f(n^\prime)$ and place it on the \emph{CLOSED} list. Place its descendents
+    on the \emph{OPEN} list
+  \item[] \emph{feasibility function} : all nodes are feasible because of the
+    tableau construction~\cite{christofides1975}
+  \item[] \emph{solution function} : a node is a solution if the sets it
+    contains cover the set of targets
+\end{enumerate}
+
+This concludes the data structures and operations discussion of the A$^*$
+algorithm. In the next section, we refine the data structures and algorithm
+towards a complete, \emph{creative!} solution.
+
+\subsubsection{Refinement}
+
+Refining the A$^*$ algorithm towards a complete solution is the topic of this
+section. We will refine the data structures using abstract data types and
+provide more insight into the final form.
+
+Data Structure Refinement:
+\begin{enumerate}
+  \item[] \emph{Solution} : a structure that holds the current partial solution
+  \item[] \emph{Target} : a structure that represents a target to surveil, with
+    a geographic location
+  \item[] \emph{UAS} : a structure that represents an available Unmanned
+    Aircraft System with an assigned squadron and operating cost
+  \item[] \emph{Squadron} : a squadron that ``owns'' one or more UASs with a
+    geographic location
+  \item[] \emph{Schedule} : a structure that represents one or more time
+    windows, per target, for which the target is ``available'' to be surveilled
+  \item[] \emph{OPEN} : a priority queue which holds the set of candidates
+  \item[] \emph{CLOSED} : a set containing nodes which have already been
+    expanded
+\end{enumerate}
 
 \subsubsection{Pseudocode}
-\emph{Name:} SCP/SPP A$^*$ Search
 
-Algorithm~\ref{alg:astar} is a version of the A$^*$ algorithm detailed
-in~\cite{pearl1984}, modified to delay termination to find a complete solution
-and to include the heuristic detailed in Section~\ref{sec:detAlg}.
+This section presents pseudocode for the deterministic A$^*$ search algorithm
+describe in the preceding sections. The pseudocode can be seen in
+Algorithm~\ref{alg:astar} and is based on the A$^*$ algorithm detailed
+in~\cite{pearl1984}. It has been modified to delay termination as to find a
+complete solution and to include the heuristic detailed in
+Section~\ref{sec:detAlg}. It is adapted from the form found in~\cite{pjcvphw8}.
 
 \begin{algorithm}[ht!]
     \begin{algorithmic}[1]
@@ -395,47 +478,14 @@ will not perform as well on another type of problem, so that all in all, its
 global performance on the space of all possible problems is equivalent to a
 random search.''~\cite{collet2007, wiki:nfl}
 
-% Discuss flow of design process; overview of Algorithm/Program Design
-%   Methodology
-\subsubsection{Algorithm/Program Design Methodology}
+\subsubsection{Simulated Annealing Algorithm Domain Discussion}
 
+\subsubsection{Data Structures and Operations}
 
+\subsubsection{Simulated Annealing Algorithm Refinement}
 
-% To show design process reflected in specific PD/AD refinement with data
-%   structures
-\subsubsection{Refinement of PD/AD with Data Structures}
+\subsubsection{Pseudocode}
 
-
-
-%%    SECTION 2.3    %%
-\subsection{\textsc{Algorithm Design Specifications}} \label{sec:designSpec}
-
-
-% Integrating Problem Domain with Algorithm Domain towards program
-% Define AD structure using PD data structures ``generally difficult''
-\subsubsection{Integration of Problem and Algorithm Domains}
-
-
-
-% Instantiation of general Algorithm Domain specification search constructs with
-%   Program Domain data structures for development of Program Specification
-% Discussion of high-level design process -- towards efficient data structures
-%   & program
-
-%%    SECTION 2.4    %%
-\subsection{\textsc{Intermediate Algorithm Designs}} \label{sec:intermedDesign}
-
-% Refine data structures (justify each) from initial Program Domain
-%   data structures
-% Integrate refined data structures into evolving  program design structure for
-%   each Approach.  Selection of ADT’s for data structure refinement
-
-%%    SECTION 2.5    %
-\subsection{\textsc{Algorithm Pseudocode}} \label{sec:pseudocode}
-
-% Refine intermediate data structures and program design
-% Discussion of low-level design process – toward efficient data structures and
-%   Program development of program functional/OOD structure for each approach
 
 %%    SECTION 2.6    %%
 \subsection{\textsc{Program Implementation}} \label{sec:code}
@@ -448,32 +498,40 @@ random search.''~\cite{collet2007, wiki:nfl}
 % --Address code development using “good” software engineering principles
 % (refs)\\
 % --“Add comments/prose”
-The implementation for this project (along with the {\LaTeX} files for this
-document) can be seen on GitHub\footnote{https://github.com/chipvp/686Project}.
+The A$^*$ Search and Simulated Annealing algorithm implementations for this
+project 
+%(along with the {\LaTeX} files for this document) 
+can be seen in the
+GitHub repository\footnote{https://github.com/chipvp/686Project} created for
+this project.
 
-%%    SECTION 4    %%
-\section{Design of Experiments} \label{sec:experiment}
-
-% --(class handout for evaluations; M\&F, Appendix B; Barr, Talbi, …)\\
-% --Objectives of experiment (selected application and general)\\
-% --Tests and Results (application, benchmarks; increasing dimensions – from
-% web?)\\
-% --Validation of code for each approach and application solution(s)\\
-% --Search Graph (partial) for your application (DFS with limited BT or BFS)\\
-% ----Algorithm state execution listing (partial)\\
-% --Discuss your  graph search diagram related to application\\
-% --Analysis of Results (relate to application) – graphs, tables, stats,...\\
-% --Briefly compare to other algorithm designs and results (paper review in
-% app.))\\
-% --Relate experiments to benchmarks and results found on web, books,...\\
-
-Experiments for this project were designed in accordance with the guidelines
-set forth in~\cite{barr2001}. An Apple MacBook Pro equipped with a 2.8 GHz
-Intel Core i7 processor with 16 GB of 1600 MHz DDR3 RAM running Mac OS X
-version 10.11.4 was used to run all experiments.
-
-%%    SECTION 5    %%
-\section{Conclusions} \label{sec:conclusion}
+% %%    SECTION 4    %%
+% \section{Design of Experiments} \label{sec:experiment}
+% 
+% % --(class handout for evaluations; M\&F, Appendix B; Barr, Talbi, …)\\
+% % --Objectives of experiment (selected application and general)\\
+% % --Tests and Results (application, benchmarks; increasing dimensions – from
+% % web?)\\
+% % --Validation of code for each approach and application solution(s)\\
+% % --Search Graph (partial) for your application (DFS with limited BT or BFS)\\
+% % ----Algorithm state execution listing (partial)\\
+% % --Discuss your  graph search diagram related to application\\
+% % --Analysis of Results (relate to application) – graphs, tables, stats,...\\
+% % --Briefly compare to other algorithm designs and results (paper review in
+% % app.))\\
+% % --Relate experiments to benchmarks and results found on web, books,...\\
+% 
+% Experiments for this project were designed in accordance with the guidelines
+% set forth in~\cite{barr2001}. An Apple MacBook Pro equipped with a 2.8 GHz
+% Intel Core i7 processor with 16 GB of 1600 MHz DDR3 RAM running Mac OS X
+% version 10.11.4 was used to run all experiments.
+% 
+% \subsection{A$^*$ Search Algorithm Results and Analysis}
+% 
+% \subsection{Simulated Annealing Algorithm Results and Analysis}
+% 
+% %%    SECTION 5    %%
+% \section{Conclusions} \label{sec:conclusion}
 
 % --Relate your  program design experience to educational objectives\\
 % --Briefly discuss experimental design results, analysis and comparisons.\\
@@ -497,6 +555,7 @@ version 10.11.4 was used to run all experiments.
 % The "triggered" command can be changed if desired:
 %\IEEEtriggercmd{\enlargethispage{-5in}}
 
+\newpage
 \bibliography{global.bib}{}
 \bibliographystyle{plain}
 
