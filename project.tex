@@ -1,4 +1,3 @@
-
 \documentclass[conference]{IEEEtran}
 
 \usepackage{amsmath,amssymb,mathabx} 
@@ -7,11 +6,12 @@
 \usepackage{graphicx}
 \usepackage{hyperref} 
 \usepackage{listings}
+  \lstset{breaklines}         % auto line break for listings
 \usepackage{varwidth}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{array} 
-\graphicspath{ {./img/} }
+\graphicspath{ {./Figures/} }
 
 %   ALGORITHM COMMANDS    %
 \newcommand{\LineComment}[1]{\Statex /* \hfill \textit{#1} \hfill*/}    % C-style Block Comment
@@ -20,15 +20,13 @@
 \algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}
 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
 \renewcommand{\algorithmicensure}{\textbf{Output:}}
-\hyphenation{op-tical net-works}
 
 \newcommand{\heuristic}{${h(n) = -\frac{\text{\# of targets
 surveilled}}{\text{cost}}}$}
 
-\lstset{breaklines}         % auto line break for listings
-\hyphenation{op-tical net-works}
-
 \newcommand{\bigoh}[1]{\ensuremath{\mathcal{O}(#1)}}		% define BigOh function
+
+\hyphenation{op-tical net-works}
 
 \begin{document} \title{CSCE 686 Complex Optimization\\Algorithm Design Project}
 
@@ -40,16 +38,18 @@ Email: \IEEEauthorrefmark{1}donald.vanpatten@afit.edu}}
 \maketitle
 
 \begin{abstract}
+
 This project addresses a problem in the field of Unmanned Aircraft Systems
-(UASs) dealing with assigning UAS orbits.  Given a limited number of UAVs, each
-based in specific locations -- each with specific ranges of flight and
-operating costs -- and a list of targets to surveil, how do we assign
-surveillance orbits to the UASs such that all targets are surveilled while
-keeping the UASs close enough to their base of operations that they may safely
-return, either when their mission finishes or they've exhausted their fuel, at
-minimum cost? The project will attempt to integrate this application domain
-with the set cover problem domain and a number of algorithm domains to solve
-the problem efficiently.
+  dealing with assigning UAS orbits.  Given a limited number of UAVs, each
+  based in specific locations -- each with specific ranges of flight and
+  operating costs -- and a list of targets to surveil, how do we assign
+  surveillance orbits to the UASs such that all targets are surveilled while
+  keeping the UASs close enough to their base of operations that they may
+  safely return, either when their mission finishes or they've exhausted their
+  fuel, at minimum cost? This project attempts to integrate this application
+  domain with the set cover problem domain and a number of algorithm domains to
+  solve the problem efficiently.
+
 \end{abstract}
 
 \section{Introduction} \label{intro}
@@ -67,9 +67,23 @@ locations -- each with specific ranges of flight and operating costs -- and a
 list of targets to surveil, how do we assign surveillance orbits to the UASs
 such that all targets are surveilled while keeping the UASs close enough to
 their base of operations that they may safely return, either when their mission
-finishes or they've exhausted their fuel, at minimum cost? The project will
-attempt to integrate this application domain with the set cover problem domain
+finishes or they've exhausted their fuel, at minimum cost? This project
+attempts to integrate this application domain with the set cover problem domain
 and a number of algorithm domains to solve the problem efficiently.
+
+In this paper, we implement a deterministic algorithm and a stochastic
+algorithm to solve this problem. According to the No Free Lunch (NFL) Theorem,
+``no search algorithm is better than a random search on the space of all
+possible problems —- in other words, if a particular algorithm does better than
+a random search on a particular type of problem, it will not perform as well on
+another type of problem, so that all in all, its global performance on the
+space of all possible problems is equivalent to a random
+search.''~\cite{collet2007, wiki:nfl} Stated another way, the ``NFL results
+show that if there is no assumption regarding the relation between visited and
+unseen search points, efficient search and optimization is
+impossible.''~\cite{igel2014} Therefore, while the implemented algorithms solve
+this hyper-constrained UAS problem, there's no guarantee of their effectiveness
+or efficiency in solving other related UAS problems.
 
 The rest of this paper is organized as follows.
 Section~\ref{sec:designProcess}, discusses the problem domain and UAS
@@ -101,9 +115,6 @@ presented in Sections~\ref{sec:astarPseudo} and~\ref{sec:SAPseudo}
 respectively. This section concludes with the coded implementations, based on
 the aforementioned pseudocode, found in Section~\ref{sec:code}.
 
-
-
-
 %%    SECTION 2.1    %%
 \subsection{\textsc{Problem Domain}} \label{sec:problemDomain}
 
@@ -127,17 +138,17 @@ while minimizing $\sum_{i = 1}^k c_j$~\cite{christofides1975, stern2006,
 talbi2009, wiki:SCP}. 
 
 In the classic, or un-weighted, set cover problem, all ${c_j =
-1}$~\cite{stern2006}. In this paper we will only deal with a weighted variant
-of the set cover problem, consequently, for the purposes of this paper, the
-term \textit{set cover problem} is synonymous with \textit{weighted set cover
-problem}, but the former will be used exclusively.
+1}$~\cite{stern2006}. In this paper we deal with a weighted variant of the set
+cover problem, consequently, for the purposes of this paper, the term
+\textit{set cover problem} is synonymous with \textit{weighted set cover
+problem}, but the former is be used exclusively.
 
 % PD symbolic set development and discussion
-\subsubsection{Symbolic Set Development and Discussion} \label{sec:symbol}
-We will now develop a symbolic set (adapted from~\cite{christofides1975,
-lamontSCP}) which will formalize the notation used throughout this paper and,
-hopefully, aid in understanding and clarity as we progress in our development
-to the algorithm and application domains.
+\subsubsection{Symbolic Set Development and Discussion} \label{sec:symbol} We
+now develop a symbolic set (adapted from~\cite{christofides1975, lamontSCP})
+which formalize the notation used throughout this paper and, hopefully, aid in
+understanding and clarity as we progress in our development to the algorithm
+and application domains.
 
 Domains:
 \begin{enumerate}
@@ -275,15 +286,14 @@ powerset of each search space $\bigoh{2^{|\mathcal{T}|} \times
 \rightarrow \bigoh{2^{m + n + q + r}}$, or every possible combination of
 targets, UASs, squadrons, and surveillance time windows.
 
-We now have to prove that the application domain, the UAS problem, is
-NP-Complete. This can be shown using the technique described
-in~\cite{586textbook} in which the constraints described in
-Section~\ref{sec:APD} are relaxed to facilitate a polynomial-time
-reduction~\cite{wiki:polyReduction} into the form of a known NP-Complete
-problem. This would allow a polynomial-time black-box solver for the known
-NP-Complete problem, if one existed, to solve the relaxed-constraint UAS
-problem. The UAS problem with relaxed constraints could then be said to be at
-least as hard as NP-Complete.
+We now prove that the application domain, the UAS problem, is NP-Complete. This
+can be shown using the technique described in~\cite{586textbook} in which the
+constraints described in Section~\ref{sec:APD} are relaxed to facilitate a
+polynomial-time reduction~\cite{wiki:polyReduction} into the form of a known
+NP-Complete problem. This would allow a polynomial-time black-box solver for
+the known NP-Complete problem, if one existed, to solve the relaxed-constraint
+UAS problem. The UAS problem with relaxed constraints could then be said to be
+at least as hard as NP-Complete.
 
 Relaxing the constraints of the UAS problem results in a problem as follows:
 given a universe, or set of targets, $\mathcal{R}$ a set of UASs $\mathcal{U}$,
@@ -297,11 +307,10 @@ checking that there is in fact a UAS $\in \mathcal{U}$ assigned to surveil that
 target. The complexity of the verification is ${\bigoh{|\mathcal{R}| \times
 |\mathcal{U}|}}$
 
-Therefore, since we have shownn that, in polynomial-time, the UAS problem can
-be transformed to the set cover problem (a known NP-Complete problem),
+Therefore, since we have shown that, in polynomial-time, the UAS problem can be
+transformed to the set cover problem (a known NP-Complete problem),
 ${\mathit{UAS} \leq_p \mathit{Set\ Cover}}$, and we can verify in
 polynomial-time the solution, the UAS problem is NP-Complete.
-
 
 %%    SECTION 2.2    %%
 \section{\textsc{Algorithm and Problem Domain Initial Integrations}} \label{sec:initIntegration}
@@ -310,13 +319,13 @@ polynomial-time the solution, the UAS problem is NP-Complete.
 \subsection{Selection of Deterministic Algorithm} \label{sec:detAlg}
 
 The deterministic algorithm used for this project is the A$^*$ search
-algorithm. The heuristic function will be defined the same way the classic
-greedy approach to this problem is as per~\cite{wiki:SCP}, with the exception
-that the heuristic is inverted, as done in~\cite{pjcvphw8}, due to the fact
-that A$^*$ chooses the next search node which has the $h(n)$ closest to $0$.
-The heuristic function developed for this project is defined as: \heuristic.
-The function for deciding which node to visit next is: \[ \text{minimize } f(n)
-= g(n) + h(n), \]
+algorithm. The heuristic function is defined the same way the classic greedy
+approach to this problem is as per~\cite{wiki:SCP}, with the exception that the
+heuristic is inverted, as done in~\cite{pjcvphw8}, due to the fact that A$^*$
+chooses the next search node which has the $h(n)$ closest to $0$.  The
+heuristic function developed for this project is defined as: \heuristic.  The
+function for deciding which node to visit next is: \[ \text{minimize } f(n) =
+g(n) + h(n), \]
 
 \noindent where $g(n) = g(n^\prime) + c(n^\prime,n)$.
 
@@ -336,8 +345,8 @@ modified to find the optim\emph{um} solution if termination is delayed. While
 it ``is generally outperformed by algorithms which can pre-process the graph to
 attain better performance''~\cite{wiki:astar}, it is still suitable for our
 purposes, especially when using an admissable heuristic to assist the search
-process~\cite{pearl1984} as we will, and is easily adaptable to work with set
-cover problem instantiations. 
+process~\cite{pearl1984} as is done in this paper, and is easily adaptable to
+work with set cover problem instantiations. 
 
 What differentiates A$^*$ from other greedy best first search algorithms is
 that it not only takes into account the distance to the goal (the $h(n)$
@@ -347,7 +356,7 @@ the heuristic''~\cite{lamontBFS}.
 
 \subsubsection{Data Structures and Operations} \label{sec:dataStructures}
 
-For the A$^*$ search algorithm, we will use the following data structures:
+For the A$^*$ search algorithm, we use the following data structures:
 
 \begin{enumerate}
   \item[] \emph{Solution} : a structure that holds the current partial solution
@@ -385,7 +394,7 @@ towards a complete, \emph{creative !} solution.
 \subsubsection{Refinement}
 
 Refining the A$^*$ algorithm towards a complete solution is the topic of this
-section. We will refine the data structures using abstract data types and
+section. We now refine the data structures using abstract data types and
 provide more insight into the final form.
 
 Data Structure Refinement:
@@ -421,8 +430,9 @@ Section~\ref{sec:detAlg}. It is adapted from the form found in~\cite{pjcvphw8}.
       \State $\mathit{CLOSED}$ : set to hold visited nodes
       \State $n$ : a set of sets with properties id, cost, and vector of children
       \Statex
-      \State Put the start node $s$ on $\mathit{OPEN}$
+      \State \textit{Step 1:} Put the start node $s$ on $\mathit{OPEN}$
       \While{true}
+        \LineComment{Step 2}
         \LineComment{Solution Function}
         \LineComment{Delayed termination}
         \If{all elements covered \&\& $\mathit{OPEN}$ is empty} \\
@@ -431,12 +441,14 @@ Section~\ref{sec:detAlg}. It is adapted from the form found in~\cite{pjcvphw8}.
             obtained by tracing back the pointers from $n$ to $s$
           \end{varwidth}
         \EndIf
+        \LineComment{Step 3}
         \LineComment{Selection Function}
         \State \begin{varwidth}[t]{\dimexpr\linewidth-\algorithmicindent}Remove
           from $\mathit{OPEN}$ and place on $\mathit{CLOSED}$ a set for which
           $f(n) = h(n) + c(n,n^\prime)$ is minimum
           \end{varwidth}
         \Statex
+        \LineComment{Step 4}
         \LineComment{Next-State-Generator Function}
         \State
           \begin{varwidth}[t]{\dimexpr\linewidth-\algorithmicindent}Otherwise
@@ -444,6 +456,7 @@ Section~\ref{sec:detAlg}. It is adapted from the form found in~\cite{pjcvphw8}.
             pointers back to $n$.
           \end{varwidth}
         \Statex
+        \LineComment{Step 5}
         \LineComment{Feasibility Function}
         \ForEach{successor $n^\prime$ of $n$}
           \LineComment{Objective Function}
@@ -475,21 +488,14 @@ Section~\ref{sec:detAlg}. It is adapted from the form found in~\cite{pjcvphw8}.
 % Selection of stochastic algorithm
 \subsection{Selection of Stochastic Algorithm}
 
-Simulated annealing is the stochastic algorithm that will be used in this
-project. A brief introduction and review of simulated annealing will follow in
+Simulated annealing is the stochastic algorithm used in this project. A brief
+introduction and review of simulated annealing follows in
 Section~\ref{sec:SAD}, with the remaining subsections in this section devoted
 to documenting the disciplined, top-down design approach found
 in~\cite{lamontMIS, lamontDesign, lamontSCP} -- starting with data structure
 choice (as the problem domain has already been discussed in
 Sections~\ref{sec:problemDomain} and~\ref{sec:application}) and finishing with
 a coded implementation (see Section~\ref{sec:code}).
-
-``This theorem states that no search algorithm is better than a random search
-on the space of all possible problems —in other words, if a particular
-algorithm does better than a random search on a particular type of problem, it
-will not perform as well on another type of problem, so that all in all, its
-global performance on the space of all possible problems is equivalent to a
-random search.''~\cite{collet2007, wiki:nfl}
 
 \subsubsection{Simulated Annealing Algorithm Domain Discussion} \label{sec:SAD}
 
@@ -503,7 +509,42 @@ wiki:metal}.  Consequently, the key to the simulated annealing algorithm is the
 temperature, which is controlled via a cooling schedule. The cooling schedule
 is responsible for allowing the search to escape from local optimals and
 gradually decreases the temperature to slow the exploration of the search space
-to the global optimum~\cite{lamontSA, talbi2009}. 
+to the global optimum~\cite{lamontSA, talbi2009}. A generic simulated annealing
+model with standard search constructs is presented in
+Algorithm~\ref{alg:SAmodel}.
+
+\begin{algorithm}[ht!]
+    \begin{algorithmic}[1]
+      \Require Cooling schedule.
+      \LineComment{Step 1: Initialization}
+      \State $s = s_0$; \Comment{Generation of the initial solution}
+      \State $T = T_{max}$; \Comment{Starting temperature}
+      \Repeat
+        \Repeat 
+          \Comment{At a fixed temperature}
+          \LineComment{Step 2: Next-State-Generator Function}
+          \State Generate a random neighbor $s^\prime$;
+          \LineComment{Step 3: Feasibility Function}
+          \State $\Delta E = f(s^\prime) - f(s)$ ;
+          \LineComment{Step 4: Solution Function}
+          \If{$\Delta E \leq 0$}
+            \State $s = s^\prime$ \Comment{Accept the neighbor solution}
+          \Else
+            \State Accept $s^\prime$ with a probability $e \frac{-\Delta E}{T}$;
+          \EndIf
+        \Until{Equilibrium condition}
+        \LineComment{e.g. a given \# of iterations executed at each $T$}
+        \LineComment{Step 5: Selection Function}
+      \State $T = g(T)$; \Comment{Temperature update} 
+      \LineComment{Delayed Termination}
+      \Until{Stopping criteria satisfied} 
+      \Comment{e.g. $T < T_{min}$}
+      \Ensure Best solution found.
+    \end{algorithmic}
+    \caption{Generic Simulated Annealing Algorithm Model with Standard Search
+    Constructs taken from~\cite{talbi2009}}
+    \label{alg:SAmodel}
+\end{algorithm}
 
 A difficulty encountered when implementing the simulated annealing algorithm is
 the concept of neighborhood selection. Considered an art-form by
@@ -513,8 +554,7 @@ leading to the global optim\emph{um}~\cite{wiki:SA}.
 
 \subsubsection{Data Structures and Operations} \label{sec:SAdata}
 
-For the simulated annealing algorithm we will use the following data
-structures:
+For the simulated annealing algorithm we use the following data structures:
 
 \begin{enumerate}
   \item[] \emph{Solution} : a structure that holds the current partial solution
@@ -575,17 +615,18 @@ follows in Section~\ref{sec:SAPseudo}.
 
 \subsubsection{Pseudocode} \label{sec:SAPseudo}
 
-The following pseudocode implementation is adapted from~\cite{lamontSAGS} to
-solve the UAS problem described in this project.
+The pseudocode implementation presented in Algorithm~\ref{alg:SA} is adapted
+from~\cite{lamontSAGS} to solve the UAS problem described in this project.
 
 \begin{algorithm}[ht!]
     \begin{algorithmic}[1]
-      \LineComment{Initialization}
+      \LineComment{Step 1: Initialization}
       \State initialize starting \emph{Temperature} value
       \State generate feasible solution : place first available point in each
         neighborhood in \emph{Solution}
       \Statex
       \While{true}
+        \LineComment{Step 2}
         \LineComment{Solution Function}
         \LineComment{Delayed termination}
         \If{$\mathit{temp} == 0$ OR $\mathit{iterations} > \mathtt{MAX_IT}$} \\
@@ -593,26 +634,26 @@ solve the UAS problem described in this project.
           \begin{varwidth}[t]{\dimexpr\linewidth-7em}solution
           \end{varwidth}
         \EndIf
-        \LineComment{Next-State-Generator Function}
+        \LineComment{Step 3: Next-State-Generator Function}
         \State \begin{varwidth}[t]{\dimexpr\linewidth-\algorithmicindent}
           mutate current solution by assigning a target to a UAS\\
           \end{varwidth}
         \Statex
-        \LineComment{Selection Function}
+        \LineComment{Step 4: Selection Function}
         \State
             \If{value of item in \emph{Solution.pop()} $<$ current solution}
               \State replace current solution with \emph{Solution.pop()}
               \Statex
-          \LineComment{Feasibility Function}
+          \LineComment{Step 5: Feasibility Function}
             \ElsIf{temp(\emph{Solution.pop()}) $==$ \texttt{true}}
               \LineComment{worse solution found}
               \State replace current solution with \emph{Solution.pop()}
             \EndIf
       \EndWhile
     \end{algorithmic}
-    \caption{A$^*$ Search Algorithm from~\cite{pearl1984} modified with a
+    \caption{Simulated Annealing Algorithm from~\cite{pearl1984} modified with a
     heuristic and delayed termination to solve SCP/SPP}
-    \label{alg:astar}
+    \label{alg:SA}
 \end{algorithm}
 
 %%    SECTION 2.6    %%
@@ -626,12 +667,11 @@ solve the UAS problem described in this project.
 % --Address code development using “good” software engineering principles
 % (refs)\\
 % --“Add comments/prose”
-The A$^*$ Search and Simulated Annealing algorithm implementations for this
-project 
-%(along with the {\LaTeX} files for this document) 
-can be seen in the
-GitHub repository\footnote{https://github.com/chipvp/686Project} created for
-this project.
+The A$^*$ Search and Simulated Annealing algorithm implementations, the input
+files used in the experiments detailed in Section~\ref{sec:experiment}, and the
+{\LaTeX} files for this document can be seen in the GitHub
+repository\footnote{https://github.com/chipvp/686Project} created for this
+project.
 
 %%    SECTION 4    %%
 \section{Design of Experiments} \label{sec:experiment}
@@ -648,16 +688,64 @@ this project.
 % % --Briefly compare to other algorithm designs and results (paper review in
 % % app.))\\
 % % --Relate experiments to benchmarks and results found on web, books,...\\
-% 
-% Experiments for this project were designed in accordance with the guidelines
-% set forth in~\cite{barr2001}. An Apple MacBook Pro equipped with a 2.8 GHz
-% Intel Core i7 processor with 16 GB of 1600 MHz DDR3 RAM running Mac OS X
-% version 10.11.4 was used to run all experiments.
-% 
-% \subsection{A$^*$ Search Algorithm Results and Analysis}
-% 
-% \subsection{Simulated Annealing Algorithm Results and Analysis}
  
+This section reports the results from testing the designed algorithms on small
+and medium input data. The data used in these experiments was derived from
+unclassified Air Force UAS mission sets. The input files can be seen in the
+GitHub repository created for this project.
+
+Experiments for this project were designed in accordance with the guidelines
+set forth in~\cite{barr2001}. Each algorithm was run $100$ times on each of the
+three input files. Times reported in Tables~\ref{tab:astarResults}
+and~\ref{tab:SAResults} are averaged over all $100$ program executions.
+
+An Apple MacBook Pro equipped with a 2.8 GHz Intel Core i7 processor with 16 GB
+of 1600 MHz DDR3 RAM running Mac OS X version 10.11.4 was used to run all
+experiments.
+ 
+\subsection{A$^*$ Search Algorithm Results and Analysis}
+
+Results for the A$^*$ Search Algorithm are presented in
+Table~\ref{tab:astarResults}. These times are averages over $100$ executions on
+three input files.
+
+\begin{table}[ht!]
+  \centering
+  \caption{Average run times of $100$ executions of the A$^*$ Search Algorithm
+  designed for this project using as input three files derived from
+  unclassified UAS mission data.}
+  \label{tab:astarResults}
+  \begin{tabular}{ | l | r | r | r | r | }
+  \hline
+    Size     & A$^*\ 1$ \\ \hline\hline
+    Small    &    3.882 \\ \hline
+    Medium   &   10.310 \\ \hline
+    Large    &   43.654 \\ \hline
+  \end{tabular}
+\end{table}
+
+\subsection{Simulated Annealing Algorithm Results and Analysis}
+ 
+Results for the Simulated Annealing Algorithm are presented in
+Table~\ref{tab:SAResults}. These times are averages over $100$ executions on
+three input files using three different cooling (temperature decay) schedules:
+SA $1$, SA $2$, and SA $3$.
+
+\begin{table}[ht!]
+  \centering
+  \caption{Average run times of $100$ executions of the Simulated Annealing
+  Algorithm designed for this project using as input three files derived from
+  unclassified UAS mission data.}
+  \label{tab:SAResults}
+  \begin{tabular}{ | l | r | r | r | r | }
+  \hline
+    Size     &  SA $1$  &  SA $2$  &   SA $3$ \\ \hline\hline
+    Small    &   2.317  &   2.197  &    2.767 \\ \hline
+    Medium   &  11.585  &  10.733  &   20.551 \\ \hline
+    Large    &  33.905  &  36.418  &   37.264 \\ \hline
+  \end{tabular}
+\end{table}
+
 %%    SECTION 5    %%
 \section{Conclusions} \label{sec:conclusion}
 
@@ -671,9 +759,27 @@ this project.
 % (references)\\ 
 % --SCP, SAT, …
 
-% use section* for acknowledgment
-% \section*{Acknowledgment}
-% The authors would like to thank...
+The experience gained in performing this top-down program design relates very
+well to the educational goals outlined in~\cite{lamontSyllabus}. Performing the
+work for this paper provided an understanding of the SCP problem domain,
+concept, classification and design integration. I have gained a better
+understanding of deterministic and stochastic algorithmic search techniques and
+theability to describe and use the A$^*$ deterministic and simulated annealing
+stochastic search techniques. This paper has also provided me an opportunity to
+us heuristic global and local search methods. Finally, through this paper and
+the assigned class homeworks, I have gained an understanding and ability to
+refine general search algorithms to solve specific problem types, all while
+integrating proper data structures along with appropriate heuristics. 
+
+The experimental design results show that the chosen algorithm implementations
+solve the UAS problem presented. Further optimizations of the algorithms can be
+performed to improve the given results, keeping in mind the
+NFL~\cite{collet2007, wiki:nfl, igel2014} and is left for future work.
+
+Overall, this project cemented many of the educational goals layed out
+in~\cite{lamontSyllabus} and provided an opportunity to put the ideas and
+concepts of algorithm design and metaheuristics to practical use.
+
 
 % trigger a \newpage just before the given reference
 % number - used to balance the columns on the last page
