@@ -72,12 +72,12 @@ attempts to integrate this application domain with the set cover problem domain
 and a number of algorithm domains to solve the problem efficiently.
 
 In this paper, we implement a deterministic algorithm and a stochastic
-algorithm to solve this problem. According to the No Free Lunch (NFL) Theorem,
-``no search algorithm is better than a random search on the space of all
-possible problems —- in other words, if a particular algorithm does better than
-a random search on a particular type of problem, it will not perform as well on
-another type of problem, so that all in all, its global performance on the
-space of all possible problems is equivalent to a random
+algorithm to solve the UAS problem. According to the No Free Lunch (NFL)
+Theorem, ``no search algorithm is better than a random search on the space of
+all possible problems —- in other words, if a particular algorithm does better
+than a random search on a particular type of problem, it will not perform as
+well on another type of problem, so that all in all, its global performance on
+the space of all possible problems is equivalent to a random
 search.''~\cite{collet2007, wiki:nfl} Stated another way, the ``NFL results
 show that if there is no assumption regarding the relation between visited and
 unseen search points, efficient search and optimization is
@@ -651,8 +651,7 @@ from~\cite{lamontSAGS} to solve the UAS problem described in this project.
             \EndIf
       \EndWhile
     \end{algorithmic}
-    \caption{Simulated Annealing Algorithm from~\cite{pearl1984} modified with a
-    heuristic and delayed termination to solve SCP/SPP}
+    \caption{Simulated Annealing Algorithm}
     \label{alg:SA}
 \end{algorithm}
 
@@ -703,7 +702,11 @@ An Apple MacBook Pro equipped with a 2.8 GHz Intel Core i7 processor with 16 GB
 of 1600 MHz DDR3 RAM running Mac OS X version 10.11.4 was used to run all
 experiments.
  
-\subsection{A$^*$ Search Algorithm Results and Analysis}
+Tabular results from each experiment are presented in
+Section~\ref{sec:astarResults}, Table~\ref{tab:astarResults} and
+Section~\ref{sec:SAResults}, Table~\ref{tab:SAResults}.
+
+\subsection{A$^*$ Search Algorithm Results and Analysis} \label{sec:astarResults}
 
 Results for the A$^*$ Search Algorithm are presented in
 Table~\ref{tab:astarResults}. These times are averages over $100$ executions on
@@ -717,14 +720,14 @@ three input files.
   \label{tab:astarResults}
   \begin{tabular}{ | l | r | r | r | r | }
   \hline
-    Size     & A$^*\ 1$ \\ \hline\hline
-    Small    &    3.882 \\ \hline
-    Medium   &   10.310 \\ \hline
-    Large    &   43.654 \\ \hline
+    Size     &  A$^*$ \\ \hline\hline
+    Small    &  3.882 \\ \hline
+    Medium   & 10.310 \\ \hline
+    Large    & 43.654 \\ \hline
   \end{tabular}
 \end{table}
 
-\subsection{Simulated Annealing Algorithm Results and Analysis}
+\subsection{Simulated Annealing Algorithm Results and Analysis} \label{sec:SAResults}
  
 Results for the Simulated Annealing Algorithm are presented in
 Table~\ref{tab:SAResults}. These times are averages over $100$ executions on
@@ -734,8 +737,9 @@ SA $1$, SA $2$, and SA $3$.
 \begin{table}[ht!]
   \centering
   \caption{Average run times of $100$ executions of the Simulated Annealing
-  Algorithm designed for this project using as input three files derived from
-  unclassified UAS mission data.}
+  Algorithm designed for this project utilizing three different cooling
+  schedules using as input three files derived from unclassified UAS mission
+  data.}
   \label{tab:SAResults}
   \begin{tabular}{ | l | r | r | r | r | }
   \hline
@@ -765,16 +769,16 @@ work for this paper provided an understanding of the SCP problem domain,
 concept, classification and design integration. I have gained a better
 understanding of deterministic and stochastic algorithmic search techniques and
 theability to describe and use the A$^*$ deterministic and simulated annealing
-stochastic search techniques. This paper has also provided me an opportunity to
-us heuristic global and local search methods. Finally, through this paper and
-the assigned class homeworks, I have gained an understanding and ability to
-refine general search algorithms to solve specific problem types, all while
+stochastic search techniques. This paper also provided an opportunity to use
+heuristic global and local search methods. Finally, through this paper and the
+assigned class homeworks, I gained an understanding and ability to refine
+general search algorithms to solve specific problem types, all while
 integrating proper data structures along with appropriate heuristics. 
 
 The experimental design results show that the chosen algorithm implementations
-solve the UAS problem presented. Further optimizations of the algorithms can be
-performed to improve the given results, keeping in mind the
-NFL~\cite{collet2007, wiki:nfl, igel2014} and is left for future work.
+solve the UAS problem presented. Further optimizations to improve the
+efficiency and effectiveness of the algorithms are left to future work, but
+remembering the NFL Theorem~\cite{collet2007, wiki:nfl, igel2014}.
 
 Overall, this project cemented many of the educational goals layed out
 in~\cite{lamontSyllabus} and provided an opportunity to put the ideas and
